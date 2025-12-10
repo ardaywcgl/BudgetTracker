@@ -1,0 +1,81 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id       Int      @id @default(autoincrement())
+  email    String   @unique
+  password String
+  records  Record[]
+  
+    wallets  Wallet[]
+  debts    Debt[]
+}
+
+model Category {
+  id      Int      @id @default(autoincrement())
+  name    String
+  records Record[]
+}
+
+model Record {
+  id         Int       @id @default(autoincrement())
+  amount     Float
+  type       String
+  note       String?
+  date       DateTime
+  category   Category   @relation(fields: [categoryId], references: [id])
+  categoryId Int
+  user       User       @relation(fields: [userId], references: [id])
+  userId     Int
+   walletId    Int?
+  wallet      Wallet?   @relation(fields: [walletId], references: [id])
+}
+model Wallet {
+  id        Int      @id @default(autoincrement())
+  name      String   // "Nakit", "Ziraat Vadesiz", "İş Bankası Kredi Kartı" vs.
+  type      String   // "cash" | "bank_account" | "credit_card"
+  balance   Decimal  @default(0)
+
+  userId    Int
+  user      User     @relation(fields: [userId], references: [id])
+
+  records   Record[]
+  Debts    Debt[]
+}
+model Debt {
+  id              Int           @id @default(autoincrement())
+  userId          Int
+  user            User          @relation(fields: [userId], references: [id])
+
+  name            String        // "İş Bankası Kredi Kartı", "Ziraat İhtiyaç Kredisi"
+  type            String        // "credit_card" | "loan"
+  principal       Decimal       // başlangıç borcu (anapara)
+  interestRate    Decimal       // aylık faiz (0.03 = %3 gibi)
+  termMonths      Int?          // kredi için vade (kredi kartında null olabilir)
+  minPaymentRate  Decimal?      // k.kartı için asgari ödeme oranı (0.2 = %20 gibi)
+  currentBalance  Decimal       // kalan borç
+ 
+  wallet Id Int?
+  wallet   Wallet? @relation(fields: [walletId], references: [id])
+
+
+ 
+  createdAt       DateTime      @default(now())
+
+  payments        DebtPayment[]
+}
+
+model DebtPayment {
+  id        Int      @id @default(autoincrement())
+  debtId    Int
+  debt      Debt     @relation(fields: [debtId], references: [id])
+
+  amount    Decimal
+  paidAt    DateTime @default(now())
+}
